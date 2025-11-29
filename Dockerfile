@@ -1,13 +1,14 @@
+# Use lightweight JDK image
 FROM eclipse-temurin:17-jdk-alpine
+
+# Create app directory
 WORKDIR /app
 
-COPY .mvn/ .mvn
-COPY mvnw .
-COPY pom.xml .
-RUN ./mvnw dependency:go-offline
+# Copy the jar file from target folder
+COPY target/*.jar app.jar
 
-COPY src ./src
-RUN ./mvnw package -DskipTests
-
+# Expose Spring Boot port
 EXPOSE 8080
-CMD ["java", "-Xms256m", "-Xmx350m", "-jar", "/app/target/WebSocketSpringBoot-0.0.1-SNAPSHOT.jar"]
+
+# Run the jar with reduced memory (important for Render free tier)
+ENTRYPOINT ["java", "-Xms256m", "-Xmx350m", "-jar", "app.jar"]
