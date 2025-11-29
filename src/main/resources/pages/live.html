@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Live Chat Tester</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px 0;
+        }
+        #messages {
+            border: 1px solid #ddd;
+            height: 250px;
+            padding: 10px;
+            overflow-y: scroll;
+            background: #f9f9f9;
+        }
+        .msg {
+            margin: 5px 0;
+            padding: 8px;
+            background: #eef;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<h2>🔥 Spring Boot Live Chat Tester</h2>
+
+<!-- USER ID -->
+<label>Subscribe as User ID:</label><br>
+<input id="myUserId" placeholder="e.g. user123" /><br>
+<button onclick="connect()">Connect & Subscribe</button>
+
+<hr>
+
+<!-- SEND MESSAGE -->
+<h3>Send Message</h3>
+<label>Receiver ID:</label><br>
+<input id="receiverId" placeholder="e.g. user456" /><br>
+
+<label>Message:</label><br>
+<input id="messageText" placeholder="Enter message" style="width: 300px;" /><br>
+
+<button onclick="sendMessage()">Send</button>
+
+<hr>
+
+<!-- SHOW MESSAGES -->
+<h3>📩 Incoming Messages</h3>
+<div id="messages"></div>
+
+<script>
+    let stompClient = null;
+
+    function connect() {
+        const userId = document.getElementById("myUserId").value;
+        if (!userId) {
+            alert("Please enter a user ID!");
+            return;
+        }
+
+        const socket = new SockJS("http://localhost:8080/ws");
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, function(frame) {
+            console.log("Connected as " + userId);
+
+            const subPath = "/topic/chat/" + userId;
+            stompClient.subscribe(subPath, function(message) {
+                const body = JSON.parse(message.body);
+                showMessage("From: " + body.senderId + " ➜ " + body.message);
+            });
+
+            alert("Subscribed as " + userId);
+        });
+    }
+
+    function sendMessage() {
+        const receiver = document.getElementById("receiverId").value;
+        const text = document.getElementById("messageText").value;
+        const sender = document.getElementById("myUserId").value;
+
+        if (!sender || !receiver || !text) {
+            alert("All fields are required!");
+            return;
+        }
+
+        stompClient.send("/app/send", {}, JSON.stringify({
+            senderId: sender,
+            receiverId: receiver,
+            message: text,
+            timestamp: Date.now()
+        }));
+
+        showMessage("(You → " + receiver + "): " + text);
+        document.getElementById("messageText").value = "";
+    }
+
+    function showMessage(msg) {
+        const msgBox = document.getElementById("messages");
+        const div = document.createElement("div");
+        div.className = "msg";
+        div.textContent = msg;
+        msgBox.appendChild(div);
+        msgBox.scrollTop = msgBox.scrollHeight;
+    }
+</script>
+
+</body>
+</html>
