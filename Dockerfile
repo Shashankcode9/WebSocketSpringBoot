@@ -1,14 +1,10 @@
-# Use lightweight JDK image
-FROM eclipse-temurin:17-jdk-alpine
+# Use Maven to build the app
+FROM maven:3.9.3-eclipse-temurin-17-alpine as builder
+COPY . .
+RUN mvn clean package -DskipTests
 
-# Create app directory
-WORKDIR /app
-
-# Copy the jar file from target folder
-COPY target/*.jar app.jar
-
-# Expose Spring Boot port
+# Final image with JAR only
+FROM openjdk:17-jdk-alpine
+COPY --from=builder target/*.jar app.jar
 EXPOSE 8080
-
-# Run the jar with reduced memory (important for Render free tier)
-ENTRYPOINT ["java", "-Xms256m", "-Xmx350m", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-jar", "/app.jar"]
